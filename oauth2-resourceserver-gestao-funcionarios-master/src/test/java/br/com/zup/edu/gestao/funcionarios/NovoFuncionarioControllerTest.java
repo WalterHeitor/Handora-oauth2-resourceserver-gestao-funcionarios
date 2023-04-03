@@ -4,6 +4,8 @@ import base.SpringBootIntegrationTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 
 import java.math.BigDecimal;
 
@@ -28,7 +30,10 @@ class NovoFuncionarioControllerTest extends SpringBootIntegrationTest {
                 "785.547.810-82", Cargo.GERENTE, new BigDecimal("10981.99"));
 
         // ação
-        mockMvc.perform(POST("/api/funcionarios", novoFuncionario))
+        mockMvc.perform(POST("/api/funcionarios", novoFuncionario)
+                        .with(SecurityMockMvcRequestPostProcessors.jwt()
+                                .authorities(new SimpleGrantedAuthority("SCOPE_funcionarios:write"))
+                        ))
                 .andExpect(status().isCreated())
                 .andExpect(redirectedUrlPattern("**/api/funcionarios/*"))
         ;
@@ -43,7 +48,10 @@ class NovoFuncionarioControllerTest extends SpringBootIntegrationTest {
         NovoFuncionarioRequest invalido = new NovoFuncionarioRequest("", "", null, null);
 
         // ação
-        mockMvc.perform(POST("/api/funcionarios", invalido))
+        mockMvc.perform(POST("/api/funcionarios", invalido)
+                        .with(SecurityMockMvcRequestPostProcessors.jwt()
+                                .authorities(new SimpleGrantedAuthority("SCOPE_funcionarios:write"))
+                        ))
                 .andExpect(status().isBadRequest())
         ;
 
@@ -62,12 +70,48 @@ class NovoFuncionarioControllerTest extends SpringBootIntegrationTest {
                             existente.getCpf(), Cargo.DESENVOLVEDOR, new BigDecimal("5432.99"));
 
         // ação
-        mockMvc.perform(POST("/api/funcionarios", novoFuncionario))
+        mockMvc.perform(POST("/api/funcionarios", novoFuncionario)
+                        .with(SecurityMockMvcRequestPostProcessors.jwt()
+                                .authorities(new SimpleGrantedAuthority("SCOPE_funcionarios:write"))
+                        ))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(status().reason("funcionário com CPF já existente"))
         ;
 
         // validação
         assertEquals(1, repository.count(), "total de funcionarios");
+    }
+
+    @Test
+    public void naoDeveCadastrarNovoFuncionarioSemToken() throws Exception {
+        // cenário
+        NovoFuncionarioRequest novoFuncionario = new NovoFuncionarioRequest("Alberto",
+                "785.547.810-82", Cargo.GERENTE, new BigDecimal("10981.99"));
+
+        // ação
+        mockMvc.perform(POST("/api/funcionarios", novoFuncionario))
+                .andExpect(status().isUnauthorized())
+        ;
+
+        // validação
+        assertEquals(0, repository.count(), "total de funcionarios");
+    }
+
+    @Test
+    public void naoDeveCadastrarNovoFuncionarioComEscopoInapropriado() throws Exception {
+        // cenário
+        NovoFuncionarioRequest novoFuncionario = new NovoFuncionarioRequest("Alberto",
+                "785.547.810-82", Cargo.GERENTE, new BigDecimal("10981.99"));
+
+        // ação
+        mockMvc.perform(POST("/api/funcionarios", novoFuncionario)
+                        .with(SecurityMockMvcRequestPostProcessors.jwt()
+                        ))
+                .andExpect(status().isForbidden())
+
+        ;
+
+        // validação
+        assertEquals(0, repository.count(), "total de funcionarios");
     }
 }

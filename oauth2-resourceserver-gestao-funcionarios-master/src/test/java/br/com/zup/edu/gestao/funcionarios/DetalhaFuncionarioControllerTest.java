@@ -4,6 +4,8 @@ import base.SpringBootIntegrationTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -31,7 +33,10 @@ class DetalhaFuncionarioControllerTest extends SpringBootIntegrationTest {
         repository.save(funcionario);
 
         // ação e validação
-        mockMvc.perform(GET("/api/funcionarios/{id}", funcionario.getId()))
+        mockMvc.perform(GET("/api/funcionarios/{id}", funcionario.getId())
+                        .with(SecurityMockMvcRequestPostProcessors.jwt()
+                                .authorities(new SimpleGrantedAuthority("SCOPE_funcionarios:read"))
+                        ))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(funcionario.getId()))
                 .andExpect(jsonPath("$.nome").value(funcionario.getNome()))
@@ -48,9 +53,40 @@ class DetalhaFuncionarioControllerTest extends SpringBootIntegrationTest {
         repository.save(funcionario);
 
         // ação e validação
-        mockMvc.perform(GET("/api/funcionarios/{id}", -9999))
+        mockMvc.perform(GET("/api/funcionarios/{id}", -9999)
+                        .with(SecurityMockMvcRequestPostProcessors.jwt()
+                                .authorities(new SimpleGrantedAuthority("SCOPE_funcionarios:read"))
+                        ))
                 .andExpect(status().isNotFound())
                 .andExpect(status().reason("funcionário não encontrado"))
+        ;
+    }
+
+    @Test
+    public void naoDeveDetalharFuncionarioSemToken() throws Exception {
+        // cenário
+        Funcionario funcionario = new Funcionario("Jordi",
+                "994.300.560-26", Cargo.DESENVOLVEDOR, new BigDecimal("3.99"));
+        repository.save(funcionario);
+
+        // ação e validação
+        mockMvc.perform(GET("/api/funcionarios/{id}", funcionario.getId()))
+                .andExpect(status().isUnauthorized())
+        ;
+    }
+
+    @Test
+    public void naoDeveDetalharFuncionarioSemEscopoApropriado() throws Exception {
+        // cenário
+        Funcionario funcionario = new Funcionario("Jordi",
+                "994.300.560-26", Cargo.DESENVOLVEDOR, new BigDecimal("3.99"));
+        repository.save(funcionario);
+
+        // ação e validação
+        mockMvc.perform(GET("/api/funcionarios/{id}", funcionario.getId())
+                        .with(SecurityMockMvcRequestPostProcessors.jwt()
+                        ))
+                .andExpect(status().isForbidden())
         ;
     }
 }

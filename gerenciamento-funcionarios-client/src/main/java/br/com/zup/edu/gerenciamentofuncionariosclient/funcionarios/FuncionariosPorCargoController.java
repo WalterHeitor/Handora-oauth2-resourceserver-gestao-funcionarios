@@ -20,7 +20,7 @@ public class FuncionariosPorCargoController {
     @GetMapping("api/funcionarios-por-cargo")
     public ResponseEntity<?>listaPorCargo(@RequestParam String cargo) {
         List<FuncionarioDeCargoResponse> funcionariosDoCargo = funcionariosClient.lista().stream()
-        //        .filter(funcionarioResponse -> cargo.equalsIgnoreCase(funcionarioResponse.getCargo()))
+                .filter(funcionarioResponse -> cargo.equalsIgnoreCase(funcionarioResponse.getCargo()))
                 .map(FuncionarioDeCargoResponse::new).collect(Collectors.toList());
 
         return ResponseEntity.ok(funcionariosDoCargo);

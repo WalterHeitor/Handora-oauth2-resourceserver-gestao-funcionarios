@@ -1,0 +1,31 @@
+server:
+  port: 8081
+  servlet:
+    context-path: /gestao-funcionarios-microservice
+
+feign:
+  client:
+    config:
+      gestaoFuncionariosClient:
+        loggerLevel: full
+logging.level.br.com.zup.edu.gerenciamentofuncionariosclient.client.GestaoFuncionariosClient: DEBUG
+
+##
+# Client Credentials Flow
+##
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          gestao-funcionarios:
+            client-id: realocacao-squad-client
+            client-secret: FLfbp4Bif01K4DzckFbm14IZKru0ku02
+            authorization-grant-type: client_credentials
+#            redirect-uri: "{baseUrl}/authorized/okta"
+            scope: funcionarios:read
+        provider:
+          gestao-funcionarios:
+#            authorization-uri: http://localhost:18080/auth/realms/gestao-funcionarios/protocol/openid-connect/auth
+            token-uri: http://localhost:18080/auth/realms/gestao-funcionarios/protocol/openid-connect/token
+
